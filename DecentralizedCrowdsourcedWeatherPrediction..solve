@@ -1,1 +1,46 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.9;
 
+contract DecentralizedCrowdsourcedWeatherPrediction {
+    struct Art {
+        uint256 id;
+        string name;
+        string artist;
+        string uri; // URI for the digital art
+        address owner;
+        bool isForSale;
+        uint256 price;
+    }
+
+    mapping(uint256 => Art) public arts;
+    uint256 public artCount;
+
+    event ArtCreated(uint256 id, string name, string artist, string uri, address owner);
+    event ArtForSale(uint256 id, uint256 price);
+    event ArtSold(uint256 id, address newOwner);
+
+    function createArt(string memory _name, string memory _artist, string memory _uri) public {
+        artCount++;
+        arts[artCount] = Art(artCount, _name, _artist, _uri, msg.sender, false, 0);
+        emit ArtCreated(artCount, _name, _artist, _uri, msg.sender);
+    }
+
+    function putArtForSale(uint256 _id, uint256 _price) public {
+        require(arts[_id].owner == msg.sender, "You are not the owner of this art.");
+        arts[_id].isForSale = true;
+        arts[_id].price = _price;
+        emit ArtForSale(_id, _price);
+    }
+
+    function buyArt(uint256 _id) public payable {
+        require(arts[_id].isForSale, "Art is not for sale.");
+        require(msg.value >= arts[_id].price, "Insufficient funds.");
+        
+        address previousOwner = arts[_id].owner;
+        arts[_id].owner = msg.sender;
+        arts[_id].isForSale = false;
+
+        payable(previousOwner).transfer(msg.value);
+        emit ArtSold(_id, msg.sender);
+    }
+}
